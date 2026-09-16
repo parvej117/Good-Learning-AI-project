@@ -72,7 +72,7 @@ export async function executeGeminiWithFallback(
 
 // System instructions tailored for Good Learning AI
 export const BASE_TEACHER_SYSTEM_PROMPT = `
-You are Good Learning AI — an intelligent, empathetic, and highly structured AI Teacher, Study Assistant, and Research Mentor.
+You are Good Learning AI — an intelligent, empathetic, and highly structured AI Teacher, Study Assistant, Multimodal Vision Tutor, and Research Mentor.
 Your core principle: "Learn Smarter. Understand Deeper. Achieve More."
 
 Guidelines:
@@ -82,15 +82,27 @@ Guidelines:
 4. Structure: Use markdown with clear headings, bullet points, clean code snippets with language tags, tables, and step-by-step explanations.
 5. If in "Explain Like I'm 5" (ELI5) mode, use simple real-life analogies (toys, playgrounds, pizza slices, recipes).
 6. If in "Teacher Mode", guide the learner progressively: Explain concept -> Provide concrete example -> Check understanding with a question -> Provide immediate feedback.
+7. Multimodal & Vision Understanding:
+   - When an image is provided (photographs, screenshots, textbook pages, math equations, hand-drawn diagrams, scientific illustrations, or handwritten notes):
+   - Perform accurate OCR on both Bengali (বাংলা) and English handwritten and printed text.
+   - If a math/science/physics problem is present, provide a step-by-step derivation and explain the conceptual logic, formulas, and units.
+   - If an image is submitted without any text prompt, provide a comprehensive breakdown: describe what is visible, transcribe the text/formula, solve any problems found, and explain the core educational principles.
 `;
+
+export interface ChatImageAttachment {
+  base64Data: string;
+  mimeType: string;
+  name?: string;
+}
 
 export interface ChatMessagePayload {
   role: 'user' | 'model' | 'system';
   content: string;
+  images?: ChatImageAttachment[];
 }
 
 /**
- * Basic or complex text chat generation
+ * Basic or complex text chat generation with multimodal image support
  */
 export async function generateAIChat(
   messages: ChatMessagePayload[],
@@ -103,11 +115,37 @@ export async function generateAIChat(
   }
 
   try {
-    // Format conversation history for Gemini
-    const contents = messages.map((m) => ({
-      role: m.role === 'model' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    }));
+    // Format conversation history for Gemini, supporting multimodal images
+    const contents = messages.map((m) => {
+      const parts: any[] = [];
+      if (m.images && Array.isArray(m.images)) {
+        for (const img of m.images) {
+          if (img.base64Data) {
+            parts.push({
+              inlineData: {
+                mimeType: img.mimeType || 'image/jpeg',
+                data: img.base64Data.replace(/^data:image\/\w+;base64,/, ''),
+              },
+            });
+          }
+        }
+      }
+
+      let textContent = m.content || '';
+      if (parts.length > 0 && !textContent.trim()) {
+        textContent =
+          'অনুগ্রহ করে এই ছবিটি বিশদভাবে বিশ্লেষণ করুন। ছবিটিতে কী কী দেখা যাচ্ছে তা বলুন, কোনো বাংলা বা ইংরেজি লেখা (OCR) থাকলে তা পড়ুন এবং তুলে ধরুন, গণিত বা বিজ্ঞানের সমস্যা থাকলে তা ধাপে ধাপে সমাধান করুন এবং মূল শিক্ষণীয় বিষয়গুলো সহজ ভাষায় বুঝিয়ে দিন। (Please analyze this image thoroughly: transcribe text in Bengali and English, solve math/science questions step-by-step, explain diagrams and handwritten notes clearly).';
+      }
+
+      if (textContent) {
+        parts.push({ text: textContent });
+      }
+
+      return {
+        role: m.role === 'model' ? 'model' : 'user',
+        parts,
+      };
+    });
 
     const response = await executeGeminiWithFallback(ai, {
       contents,

@@ -15,6 +15,11 @@ import {
   FALLBACK_MODEL,
   BASE_TEACHER_SYSTEM_PROMPT,
 } from './gemini.ts';
+import {
+  generateFullStackProject,
+  editExistingProject,
+  debugProjectCode,
+} from './aiCodingAgent.ts';
 import { db, DEFAULT_USER_ID } from './db.ts';
 
 export const apiRouter = express.Router();
@@ -97,10 +102,36 @@ apiRouter.post('/chat/stream', async (req: Request, res: Response) => {
   }
 
   try {
-    const contents = messages.map((m: any) => ({
-      role: m.role === 'model' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    }));
+    const contents = messages.map((m: any) => {
+      const parts: any[] = [];
+      if (m.images && Array.isArray(m.images)) {
+        for (const img of m.images) {
+          if (img.base64Data) {
+            parts.push({
+              inlineData: {
+                mimeType: img.mimeType || 'image/jpeg',
+                data: img.base64Data.replace(/^data:image\/\w+;base64,/, ''),
+              },
+            });
+          }
+        }
+      }
+
+      let textContent = m.content || '';
+      if (parts.length > 0 && !textContent.trim()) {
+        textContent =
+          'অনুগ্রহ করে এই ছবিটি বিশদভাবে বিশ্লেষণ করুন। ছবিটিতে কী কী দেখা যাচ্ছে তা বলুন, কোনো বাংলা বা ইংরেজি লেখা (OCR) থাকলে তা পড়ুন এবং তুলে ধরুন, গণিত বা বিজ্ঞানের সমস্যা থাকলে তা ধাপে ধাপে সমাধান করুন এবং মূল শিক্ষণীয় বিষয়গুলো সহজ ভাষায় বুঝিয়ে দিন। (Please analyze this image thoroughly: transcribe text in Bengali and English, solve math/science questions step-by-step, explain diagrams and handwritten notes clearly).';
+      }
+
+      if (textContent) {
+        parts.push({ text: textContent });
+      }
+
+      return {
+        role: m.role === 'model' ? 'model' : 'user',
+        parts,
+      };
+    });
 
     let responseStream;
     try {
@@ -335,6 +366,141 @@ apiRouter.post('/coding/tutor', async (req: Request, res: Response) => {
     console.error('Coding tutor error:', err);
     return res.status(500).json({ error: err.message || 'Failed to process coding request' });
   }
+});
+
+// ----------------------------------------------------
+// Advanced Full-Stack AI Coding Agent Endpoints
+// ----------------------------------------------------
+
+// 1. Full Project Generation (Build Mode)
+apiRouter.post('/coding-agent/generate', async (req: Request, res: Response) => {
+  try {
+    const { requirement, preferredStack, targetLanguage, includeAdmin, includeAuth } = req.body || {};
+    if (!requirement || typeof requirement !== 'string') {
+      return res.status(400).json({ error: 'Requirement description is required' });
+    }
+
+    const project = await generateFullStackProject({
+      requirement,
+      preferredStack,
+      targetLanguage,
+      includeAdmin,
+      includeAuth,
+    });
+
+    return res.json({ success: true, project });
+  } catch (err: any) {
+    console.error('Coding Agent Project Generation error:', err);
+    return res.status(500).json({ error: err.message || 'Failed to generate full-stack project' });
+  }
+});
+
+// 2. Edit Existing Project (Edit Mode)
+apiRouter.post('/coding-agent/edit', async (req: Request, res: Response) => {
+  try {
+    const { requirement, currentFiles, currentStack, targetLanguage } = req.body || {};
+    if (!requirement || !currentFiles || !Array.isArray(currentFiles)) {
+      return res.status(400).json({ error: 'Requirement and currentFiles array are required' });
+    }
+
+    const result = await editExistingProject({
+      requirement,
+      currentFiles,
+      currentStack,
+      targetLanguage,
+    });
+
+    return res.json({ success: true, data: result });
+  } catch (err: any) {
+    console.error('Coding Agent Edit error:', err);
+    return res.status(500).json({ error: err.message || 'Failed to edit project' });
+  }
+});
+
+// 3. Self-Debugging (Debug Mode)
+apiRouter.post('/coding-agent/debug', async (req: Request, res: Response) => {
+  try {
+    const { errorMessage, stackTrace, relevantCode, currentFiles, targetLanguage } = req.body || {};
+    if (!errorMessage) {
+      return res.status(400).json({ error: 'errorMessage is required' });
+    }
+
+    const debugResult = await debugProjectCode({
+      errorMessage,
+      stackTrace,
+      relevantCode,
+      currentFiles,
+      targetLanguage,
+    });
+
+    return res.json({ success: true, data: debugResult });
+  } catch (err: any) {
+    console.error('Coding Agent Debug error:', err);
+    return res.status(500).json({ error: err.message || 'Failed to debug code' });
+  }
+});
+
+// 4. Project Starter Templates
+apiRouter.get('/coding-agent/templates', (_req: Request, res: Response) => {
+  res.json({
+    success: true,
+    templates: [
+      {
+        id: 'student-mgmt',
+        title: 'Student Management System',
+        titleBn: 'স্টুডেন্ট ম্যানেজমেন্ট সিস্টেম',
+        description: 'Student directory, admissions, gradebook, attendance sheets, and parent portal.',
+        category: 'Education',
+        stack: 'React + Node/Express + PostgreSQL + Tailwind',
+        prompt: 'একটি পূর্ণাঙ্গ স্টুডেন্ট ম্যানেজমেন্ট সিস্টেম বানাও যেখানে ছাত্রছাত্রী ভর্তি, ক্লাসরুম হাজিরা, গ্রেডশীট এবং অ্যাডমিন ড্যাশবোর্ড থাকবে।',
+      },
+      {
+        id: 'dokan-pos',
+        title: 'Dokan Hishab & POS Software',
+        titleBn: 'দোকানের হিসাব ও ক্যাশ বাকি খাতা (POS)',
+        description: 'Retail counter billing, customer credit dues ledger (বাকি খাতা), inventory, and daily profit/loss.',
+        category: 'Business',
+        stack: 'React + Node/Express + SQLite + Tailwind',
+        prompt: 'একটা মুদি বা খুচরা দোকানের হিসাবের সফটওয়্যার বানাও (POS বিলিং, কাস্টমার বাকি খাতা, দৈনিক লাভ-ক্ষতি হিসাব ও ক্যাশ রসিদ)।',
+      },
+      {
+        id: 'lms-certificates',
+        title: 'Online Course Platform with Certificates',
+        titleBn: 'অনলাইন কোর্স ও ডিজিটাল সার্টিফিকেট প্ল্যাটফর্ম',
+        description: 'Video lessons, student enrollment, quiz assessment, and auto-generated verifiable PDF certificates.',
+        category: 'E-Learning',
+        stack: 'React + Node/Express + PostgreSQL + Tailwind',
+        prompt: 'একটা অনলাইন কোর্স ওয়েবসাইট বানাও যেখানে স্টুডেন্ট রেজিস্ট্রেশন করবে, কোর্স ভিডিও দেখবে, কুইজ দেবে এবং ১০০% শেষ করলে ডিজিটাল সার্টিফিকেট পাবে।',
+      },
+      {
+        id: 'ecommerce-cart',
+        title: 'E-Commerce Store & Admin Panel',
+        titleBn: 'ই-কমার্স শপ ও অ্যাডমিন প্যানেল',
+        description: 'Product catalog, shopping cart, checkout with bKash/Card, order tracking, and admin product manager.',
+        category: 'Commerce',
+        stack: 'React + Express + PostgreSQL + Tailwind',
+        prompt: 'একটি আধুনিক ই-কমার্স ওয়েবসাইট তৈরি করো যাতে প্রোডাক্ট ক্যাটালগ, শপিং কার্ট, পেমেন্ট ও সম্পূর্ণ অ্যাডমিন প্যানেল থাকবে।',
+      },
+      {
+        id: 'hospital-patient',
+        title: 'Hospital & Patient Management',
+        titleBn: 'হাসপাতাল ও ডাক্তার অ্যাপয়েন্টমেন্ট সিস্টেম',
+        description: 'Doctor appointments, patient medical records, prescription manager, and billing invoice.',
+        category: 'Healthcare',
+        stack: 'React + Node/Express + PostgreSQL + Tailwind',
+        prompt: 'হাসপাতাল ও ক্লিনিকের জন্য সফটওয়্যার বানাও যাতে ডাক্তার বুকিং, রোগীর হিস্ট্রি ও প্রেসক্রিপশন তৈরি করা যায়।',
+      },
+      {
+        id: 'job-portal',
+        title: 'Job Portal & Recruitment System',
+        titleBn: 'চাকরি ও জব সার্কুলার পোর্টাল',
+        description: 'Job postings, resume upload, applicant tracking, and employer recruiter dashboard.',
+        category: 'HR / Recruitment',
+        stack: 'React + Node/Express + PostgreSQL + Tailwind',
+        prompt: 'একটি জব পোর্টাল প্ল্যাটফর্ম তৈরি করো যেখানে কোম্পানি চাকরির বিজ্ঞপ্তি দেবে এবং প্রার্থীরা সিভি দিয়ে আবেদন করতে পারবে।',
+      },
+    ],
+  });
 });
 
 // Admin Metrics

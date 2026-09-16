@@ -1,9 +1,15 @@
 // Good Learning AI - AI Service Abstraction Layer
 
+export interface ChatInputMessage {
+  role: 'user' | 'model' | 'system';
+  content: string;
+  images?: { base64Data: string; mimeType: string; name?: string }[];
+}
+
 export interface AIServiceInterface {
-  chat(messages: { role: 'user' | 'model' | 'system'; content: string }[], systemPrompt?: string): Promise<string>;
+  chat(messages: ChatInputMessage[], systemPrompt?: string): Promise<string>;
   streamChat(
-    messages: { role: 'user' | 'model' | 'system'; content: string }[],
+    messages: ChatInputMessage[],
     onChunk: (text: string) => void,
     onDone: () => void,
     onError: (err: string) => void,
@@ -52,7 +58,7 @@ export interface AIServiceInterface {
 }
 
 class GeminiAIService implements AIServiceInterface {
-  async chat(messages: { role: 'user' | 'model' | 'system'; content: string }[], systemPrompt?: string): Promise<string> {
+  async chat(messages: ChatInputMessage[], systemPrompt?: string): Promise<string> {
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -66,7 +72,7 @@ class GeminiAIService implements AIServiceInterface {
   }
 
   streamChat(
-    messages: { role: 'user' | 'model' | 'system'; content: string }[],
+    messages: ChatInputMessage[],
     onChunk: (text: string) => void,
     onDone: () => void,
     onError: (err: string) => void,
@@ -246,6 +252,77 @@ class GeminiAIService implements AIServiceInterface {
     if (!res.ok) throw new Error('Code tutor failed');
     const json = await res.json();
     return json.data;
+  }
+
+  // Full-Stack AI Coding Agent Methods
+  async generateFullStackProject(params: {
+    requirement: string;
+    preferredStack?: string;
+    targetLanguage?: 'en' | 'bn' | 'auto';
+    includeAdmin?: boolean;
+    includeAuth?: boolean;
+  }): Promise<any> {
+    const res = await fetch('/api/coding-agent/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Project generation failed');
+    }
+    const json = await res.json();
+    return json.project;
+  }
+
+  async editProject(params: {
+    requirement: string;
+    currentFiles: any[];
+    currentStack: any;
+    targetLanguage?: 'en' | 'bn' | 'auto';
+  }): Promise<any> {
+    const res = await fetch('/api/coding-agent/edit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Project edit failed');
+    }
+    const json = await res.json();
+    return json.data;
+  }
+
+  async debugProject(params: {
+    errorMessage: string;
+    stackTrace?: string;
+    relevantCode?: string;
+    currentFiles?: any[];
+    targetLanguage?: 'en' | 'bn' | 'auto';
+  }): Promise<any> {
+    const res = await fetch('/api/coding-agent/debug', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Code debugging failed');
+    }
+    const json = await res.json();
+    return json.data;
+  }
+
+  async getCodingTemplates(): Promise<any[]> {
+    try {
+      const res = await fetch('/api/coding-agent/templates');
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.templates || [];
+    } catch {
+      return [];
+    }
   }
 }
 

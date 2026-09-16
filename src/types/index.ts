@@ -50,6 +50,16 @@ export interface Project {
   updatedAt: string;
 }
 
+export interface ChatAttachment {
+  type: 'image' | 'document' | 'code';
+  name: string;
+  url?: string;
+  preview?: string; // base64 / data URL
+  mimeType?: string;
+  base64Data?: string;
+  size?: number;
+}
+
 export interface ChatMessage {
   id: string;
   conversationId: string;
@@ -62,12 +72,7 @@ export interface ChatMessage {
     question?: string;
     expectedConcept?: string;
   };
-  attachments?: {
-    type: 'image' | 'document' | 'code';
-    name: string;
-    url?: string;
-    preview?: string;
-  }[];
+  attachments?: ChatAttachment[];
   metadata?: {
     model?: string;
     tokens?: number;
@@ -261,3 +266,107 @@ export interface TeacherModeState {
   feedbackHistory: { studentAnswer: string; teacherFeedback: string; score: number }[];
   isComplete: boolean;
 }
+
+// ----------------------------------------------------
+// Advanced Full-Stack AI Coding Agent Models
+// ----------------------------------------------------
+
+export type CodingAgentMode = 'build' | 'edit' | 'debug' | 'tutor';
+
+export interface ProjectTechStack {
+  frontend: string;
+  backend: string;
+  database: string;
+  styling: string;
+  apiType: string;
+  reason: string;
+}
+
+export interface GeneratedProjectFile {
+  path: string; // e.g. "/routes/api.ts", "/app/controllers/StudentController.ts"
+  name: string;
+  language: string;
+  content: string;
+  description: string;
+  type: 'controller' | 'model' | 'route' | 'view' | 'migration' | 'service' | 'middleware' | 'config' | 'test' | 'doc';
+  isModified?: boolean;
+  isNew?: boolean;
+}
+
+export interface ProjectDatabaseTable {
+  name: string;
+  description: string;
+  columns: { name: string; type: string; constraints: string; description: string }[];
+}
+
+export interface ProjectDatabaseSchema {
+  tables: ProjectDatabaseTable[];
+  relationships: { fromTable: string; fromColumn: string; toTable: string; toColumn: string; type: string }[];
+  schemaSql: string;
+  migrationCode: string;
+  seedDataSql: string;
+}
+
+export interface ProjectApiEndpoint {
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  path: string;
+  description: string;
+  authRequired: boolean;
+  requestBody?: string;
+  responseSample: string;
+}
+
+export interface ProjectWorkflowStep {
+  step: number;
+  title: string;
+  titleBn: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'skipped';
+  details: string;
+}
+
+export interface ProjectChangeSummary {
+  filesCreated: string[];
+  filesModified: string[];
+  filesDeleted: string[];
+  featuresAdded: string[];
+  potentialIssues: string[];
+  nextSteps: string[];
+}
+
+export interface ProjectSecurityCheck {
+  item: string;
+  status: 'passed' | 'warning' | 'info';
+  description: string;
+}
+
+export interface FullStackProject {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  summaryBn: string;
+  techStack: ProjectTechStack;
+  architectureType: 'laravel-like' | 'clean-arch' | 'modular-monolith';
+  workflowSteps: ProjectWorkflowStep[];
+  database: ProjectDatabaseSchema;
+  files: GeneratedProjectFile[];
+  apis: ProjectApiEndpoint[];
+  adminPanelFeatures: string[];
+  securityChecks: ProjectSecurityCheck[];
+  changeSummary?: ProjectChangeSummary;
+  tests: { name: string; type: 'unit' | 'api' | 'integration'; code: string }[];
+  deploymentGuides: {
+    vercel: string;
+    cloudRun: string;
+    docker: string;
+    vps: string;
+  };
+  interactivePreview: {
+    routes: { path: string; label: string; icon?: string }[];
+    mockRecords: Record<string, any[]>;
+    adminStats: { label: string; value: string; change: string }[];
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+

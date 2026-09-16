@@ -51,7 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
     { id: 'flashcards', label: 'Flashcards & SRS', icon: <Layers className="w-4 h-4" />, category: 'tools' },
 
     // Specialized
-    { id: 'coding', label: 'Coding Tutor', icon: <Code2 className="w-4 h-4" />, category: 'specialized' },
+    { id: 'coding', label: 'AI Coding Agent', icon: <Code2 className="w-4 h-4" />, badge: 'Full-Stack', category: 'specialized' },
     { id: 'voice', label: 'Voice Tutor', icon: <Mic className="w-4 h-4" />, category: 'specialized' },
     { id: 'research', label: 'Research Assistant', icon: <Search className="w-4 h-4" />, category: 'specialized' },
 
