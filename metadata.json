@@ -1,0 +1,6 @@
+{
+  "name": "Good Learning AI",
+  "description": "Learn Smarter. Understand Deeper. Achieve More. Cross-platform AI Teacher, Study Assistant, Research Assistant, and Personal Learning Workspace.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

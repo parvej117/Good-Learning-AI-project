@@ -1,0 +1,65 @@
+{
+  "id": "/",
+  "name": "Good Learning AI",
+  "short_name": "GoodLearning",
+  "description": "Learn Smarter. Understand Deeper. Achieve More. Cross-platform AI Teacher, Study Assistant, and Personal Learning Workspace.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "AI Teacher",
+      "short_name": "Teacher",
+      "description": "Start an interactive step-by-step teaching session",
+      "url": "/?tab=teach"
+    },
+    {
+      "name": "AI Chat",
+      "short_name": "Chat",
+      "description": "Chat with Good Learning AI",
+      "url": "/?tab=chat"
+    },
+    {
+      "name": "Document Analyzer",
+      "short_name": "Docs",
+      "description": "Upload and learn from PDFs & notes",
+      "url": "/?tab=documents"
+    },
+    {
+      "name": "Quiz & Exam",
+      "short_name": "Quiz",
+      "description": "Test understanding and knowledge",
+      "url": "/?tab=quiz"
+    }
+  ]
+}
